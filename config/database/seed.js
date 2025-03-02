@@ -1,10 +1,10 @@
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-const mysql = require('mysql2/promise');
+require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
+const mysql = require("mysql2/promise");
 
-const seedFilePath = path.join(__dirname, '../../resources/seed.sql');
-const seedSQL = fs.readFileSync(seedFilePath, 'utf8');
+const seedFilePath = path.join(__dirname, "../../resources/seed.sql");
+const seedSQL = fs.readFileSync(seedFilePath, "utf8");
 
 async function seedDatabase() {
   const connection = await mysql.createConnection({
@@ -16,15 +16,15 @@ async function seedDatabase() {
   });
 
   try {
-    console.log('mysql connected');
+    console.log("mysql connected");
     await connection.query(seedSQL);
-    console.log('database seeded');
+    console.log("database seeded");
   } catch (err) {
-    console.error('database seeding err:', err);
+    console.error("database seeding err:", err);
   } finally {
     await connection.end();
-    console.log('database connection closed');
+    console.log("database connection closed");
   }
 }
 
-seedDatabase();
+module.exports = { seedDatabase };

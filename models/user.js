@@ -35,7 +35,13 @@ User.init({
     }
 }, {
     sequelize,
-    modelName: 'User'
+    modelName: 'User',
+    tableName: 'users',
+    defaultScope: {
+        attributes: {
+            exclude: ['password']
+        }
+    }
 });
 
 module.exports = User;

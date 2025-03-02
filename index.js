@@ -8,11 +8,7 @@ const port = process.env.APP_PORT || 3000;
 app.use(express.json());
 app.use(requestLogger);
 
-app.use("/", routes);
-
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
+app.use("/api", routes);
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);

@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+const { isTokenRevoked } = require("../services/redisService");
 
-const authenticateToken = (req, res, next) => {
+const tokenVerifier = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
 
   // Kiểm tra có header Authorization không
@@ -13,19 +14,21 @@ const authenticateToken = (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
+    // Check if token is revoked
+    const revoked = await isTokenRevoked(token);
+    if (revoked) {
+      return res.status(401).json({ error: "token is revoked" });
+    }
+
     // Giải mã token
-    const decoded = jwt.verify(
-      token,
-      process.env.ACCESS_TOKEN_SECRET,
-      (err, decoded) => {
-        if (err) {
-          return res.status(403).json({ error: "Forbidden: Invalid token" });
-        }
-      }
-    );
-    req.user = decoded; // Lưu thông tin user vào req để sử dụng sau này
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    // If verification is successful, set user and token in request
+    req.user = decoded;
+    req.token = token;
     next(); // Cho phép tiếp tục request
   } catch (err) {
+    console.error("Token verification error:", err);
     return res.status(403).json({ error: "Forbidden: Invalid token" });
   }
 };
@@ -33,12 +36,8 @@ const authenticateToken = (req, res, next) => {
 const generateAccessToken = (user) => {
   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
 };
-const generateRefreshToken = (user) => {
-  return jwt.sign(user, process.env.REFRESH_TOKEN_SECRET);
-};
 
 module.exports = {
-  authenticateToken,
-  generateAccessToken,
-  generateRefreshToken,
+  tokenVerifier,
+  generateAccessToken
 };

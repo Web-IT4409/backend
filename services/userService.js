@@ -1,4 +1,10 @@
 const mysqlConnection = require("../config/database/index");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+} = require("../middlewares/authMiddleware");
+require("dotenv").config();
+const jwt = require("jsonwebtoken");
 
 const getUsers = (req, res) => {
   mysqlConnection.query("SELECT * FROM users", (err, results) => {
@@ -45,21 +51,17 @@ const loginUser = (req, res) => {
 
       const user = results[0];
 
-      // Kiểm tra password đã hash bằng bcrypt
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
+      // Kiểm tra password
+      if (user.password !== password) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
       // Tạo JWT token
-      const token = jwt.sign(
-        { id: user.id, email: user.email },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "1h" }
-      );
-
+      const accessToken = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
       res.json({
-        token,
+        accessToken,
+        refreshToken,
         user: { id: user.id, name: user.name, email: user.email },
       });
     }

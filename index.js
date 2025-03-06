@@ -1,6 +1,9 @@
 const express = require("express");
 const routes = require("./routes");
 const requestLogger = require("./middlewares/requestLogger");
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const app = express();
 const port = process.env.APP_PORT || 3000;

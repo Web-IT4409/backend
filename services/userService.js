@@ -1,7 +1,5 @@
 const bcrypt = require("bcrypt");
-const {
-  generateAccessToken,
-} = require("../middlewares/authMiddleware");
+const { generateAccessToken } = require("../middlewares/authMiddleware");
 const { revokeToken } = require("../services/redisService");
 require("dotenv").config();
 const User = require("../models/user");
@@ -27,8 +25,18 @@ const createUser = async (req, res) => {
   // hash password
   const hashedPassword = await bcrypt.hash(password, 10);
   try {
-    const newUser = await User.create({ firstName, lastName, username, password: hashedPassword, status: 'ACTIVE', createdAt: new Date(), updatedAt: new Date() });
-    res.status(201).json({ message: "user created successfully with id: " + newUser.id });
+    const newUser = await User.create({
+      firstName,
+      lastName,
+      username,
+      password: hashedPassword,
+      status: "ACTIVE",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    res
+      .status(201)
+      .json({ message: "user created successfully with id: " + newUser.id });
   } catch (error) {
     console.error("creating user error: ", error);
     res.status(500).json({ error: "internal server error" });
@@ -39,7 +47,9 @@ const login = async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res.status(400).json({ error: "username and password are required" });
+    return res
+      .status(400)
+      .json({ error: "username and password are required" });
   }
 
   const user = await User.unscoped().findOne({ where: { username } });

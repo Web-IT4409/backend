@@ -17,6 +17,12 @@ const createComment = async (req, res) => {
       return res.status(404).json({ error: "Post not found" });
     }
 
+    if (post.visibility === "PRIVATE" && post.userId != userId) {
+      return res
+        .status(403)
+        .json({ error: "You do not have permission to see this post" });
+    }
+
     const comment = await Comment.create({
       userId,
       postId,

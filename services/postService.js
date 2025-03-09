@@ -1,5 +1,7 @@
-const { Post, User } = require("../models/initModels");
+const comment = require("../models/comment");
+const { User, Post, Comment } = require("../models/initModels");
 const { Post: PostEnums } = require("../utils/enum");
+const Sequelize = require("sequelize");
 
 // Create a new post
 const createPost = async (req, res) => {
@@ -56,7 +58,6 @@ const createPost = async (req, res) => {
   }
 };
 
-// Get all posts (with visibility filter)
 const getPosts = async (req, res) => {
   try {
     const requestingUserId = req.user.id;
@@ -80,12 +81,24 @@ const getPosts = async (req, res) => {
           model: User,
           attributes: ["id", "firstName", "lastName", "username"],
         },
+        {
+          model: Comment,
+          attributes: [], // Không lấy dữ liệu comment
+        },
       ],
+      attributes: {
+        include: [
+          [
+            Sequelize.fn("COUNT", Sequelize.col("Comments.id")),
+            "countComments",
+          ],
+        ],
+      },
+      group: ["Post.id", "User.id"], // Cần group để COUNT() hoạt động đúng
     });
 
     return res.status(200).json({
       success: true,
-      count: posts.length,
       data: posts,
     });
   } catch (error) {
@@ -108,6 +121,15 @@ const getPostById = async (req, res) => {
         },
       ],
     });
+    const comments = await comment.findAll({
+      where: { postId: id },
+      include: [
+        {
+          model: User,
+          attributes: ["username"],
+        },
+      ],
+    });
 
     if (!post) {
       return res.status(404).json({ error: "Post not found" });
@@ -125,7 +147,7 @@ const getPostById = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: post,
+      data: { post, comments },
     });
   } catch (error) {
     console.error("Error fetching post:", error);

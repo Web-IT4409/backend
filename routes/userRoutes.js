@@ -1,5 +1,11 @@
 const express = require("express");
-const { login, getUser, createUser, getAll, logout } = require("../services/userService");
+const {
+  login,
+  getUser,
+  createUser,
+  getAll,
+  logout,
+} = require("../services/userService");
 const { tokenVerifier } = require("../middlewares/authMiddleware");
 const { activeAccountFilter } = require("../middlewares/statusMiddleware");
 const router = express.Router();

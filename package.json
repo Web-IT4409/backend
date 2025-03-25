@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --legacy-watch index.js",
-    "seed": "node config/database/seed.js",
+    "seed:users": "node scripts/seedUsers.js",
     "start": "node index.js"
   },
   "keywords": [],

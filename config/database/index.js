@@ -12,6 +12,7 @@ const dbConfig = {
 
 const sequelize = new Sequelize(dbConfig);
 
-sequelize.sync({ force: false })
+// force update database theo model
+sequelize.sync({ force: true })
 
 module.exports = sequelize;

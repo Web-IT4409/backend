@@ -39,7 +39,7 @@ services:
       - ./data/01-init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql
       - ./data/02-seed-users.sql:/docker-entrypoint-initdb.d/02-seed-users.sql
     ports:
-      - "127.0.0.1:${DB_PORT}:3306"
+      - "3307:3306/tcp"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s

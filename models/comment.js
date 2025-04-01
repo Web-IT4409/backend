@@ -36,6 +36,14 @@ module.exports = (sequelize) => {
         type: DataTypes.ENUM(...Object.values(CommentEnums.STATUS)),
         defaultValue: "ACTIVE",
       },
+      createdAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+      },
     },
     {
       timestamps: true,

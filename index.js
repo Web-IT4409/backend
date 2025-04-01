@@ -1,7 +1,7 @@
 const express = require("express");
 const routes = require("./routes");
 const requestLogger = require("./middlewares/requestLogger");
-const dotenv = require('dotenv');
+const dotenv = require("dotenv");
 
 dotenv.config();
 

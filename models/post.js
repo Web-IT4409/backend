@@ -37,10 +37,52 @@ module.exports = (sequelize) => {
         type: DataTypes.ENUM(...Object.values(PostEnums.STATUS)),
         defaultValue: PostEnums.STATUS.ACTIVE,
       },
+      hashtags: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: [],
+        get() {
+          const value = this.getDataValue("hashtags");
+          return Array.isArray(value) ? value : [];
+        },
+        set(value) {
+          this.setDataValue("hashtags", Array.isArray(value) ? value : []);
+        },
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+      },
     },
     {
       timestamps: true,
       tableName: "posts",
+      hooks: {
+        afterFind: async (posts) => {
+          if (!posts) return;
+
+          // Nếu là một mảng posts
+          if (Array.isArray(posts)) {
+            for (const post of posts) {
+              const emotionsCount = await sequelize.models.Emotion.count({
+                where: { postId: post.id },
+              });
+              post.likesCount = emotionsCount;
+            }
+          }
+          // Nếu là một post đơn lẻ
+          else {
+            const emotionsCount = await sequelize.models.Emotion.count({
+              where: { postId: posts.id },
+            });
+            posts.likesCount = emotionsCount;
+          }
+        },
+      },
     }
   );
   Post.associate = (models) => {
@@ -50,6 +92,10 @@ module.exports = (sequelize) => {
     });
     Post.belongsTo(models.User, {
       foreignKey: "userId",
+      onDelete: "CASCADE",
+    });
+    Post.hasMany(models.Emotion, {
+      foreignKey: "postId",
       onDelete: "CASCADE",
     });
   };

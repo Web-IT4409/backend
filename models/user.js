@@ -1,69 +1,77 @@
-const { Model, DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const { Model, DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
 
 class User extends Model {
-    static associate(models) {
-        // Friend request associations
-        User.hasMany(models.FriendRequest, {
-            foreignKey: 'sender_id',
-            as: 'sentRequests'
-        });
-        User.hasMany(models.FriendRequest, {
-            foreignKey: 'receiver_id',
-            as: 'receivedRequests'
-        });
+  static associate(models) {
+    // Friend request associations
+    User.hasMany(models.FriendRequest, {
+      foreignKey: "sender_id",
+      as: "sentRequests",
+    });
+    User.hasMany(models.FriendRequest, {
+      foreignKey: "receiver_id",
+      as: "receivedRequests",
+    });
 
-        // Friendship associations
-        User.hasMany(models.UserFriend, {
-            foreignKey: 'user_id_1',
-            as: 'friendships1'
-        });
-        User.hasMany(models.UserFriend, {
-            foreignKey: 'user_id_2',
-            as: 'friendships2'
-        });
-    }
+    // Friendship associations
+    User.hasMany(models.UserFriend, {
+      foreignKey: "user_id_1",
+      as: "friendships1",
+    });
+    User.hasMany(models.UserFriend, {
+      foreignKey: "user_id_2",
+      as: "friendships2",
+    });
+  }
 }
 
-User.init({
+User.init(
+  {
     firstName: {
-        type: DataTypes.STRING,
-        allowNull: false
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     lastName: {
-        type: DataTypes.STRING,
-        allowNull: false
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     username: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
     },
     password: {
-        type: DataTypes.STRING,
-        allowNull: false
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     status: {
-        type: DataTypes.ENUM('ACTIVE', 'BANNED', 'INACTIVE', 'INVESTIGATE'),
-        defaultValue: 'ACTIVE'
+      type: DataTypes.ENUM("ACTIVE", "BANNED", "INACTIVE", "INVESTIGATE"),
+      defaultValue: "ACTIVE",
+    },
+    hashtags: {
+      type: DataTypes.JSON(DataTypes.STRING),
+      allowNull: false,
+      defaultValue: [],
     },
     createdAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
     },
     updatedAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-    }
-}, {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+  },
+  {
     sequelize,
-    modelName: 'User',
-    tableName: 'users',
+    modelName: "User",
+    tableName: "users",
     defaultScope: {
-        attributes: {
-            exclude: ['password']
-        }
-    }
-});
+      attributes: {
+        exclude: ["password"],
+      },
+    },
+  }
+);
 
 module.exports = User;

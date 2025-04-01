@@ -2,6 +2,12 @@ const comment = require("../models/comment");
 const { User, Post, Comment } = require("../models/initModels");
 const { Post: PostEnums } = require("../utils/enum");
 const Sequelize = require("sequelize");
+const {
+  friendPosts,
+  recommendPosts,
+} = require("../middlewares/recommendPosts");
+const { UserFriend } = require("../models/initModels");
+const { Op } = require("sequelize");
 
 // Create a new post
 const createPost = async (req, res) => {
@@ -63,17 +69,43 @@ const getPosts = async (req, res) => {
     const requestingUserId = req.user.id;
     const targetUserId = req.query.userId || requestingUserId;
 
-    // Determine visibility filter based on whether user is viewing own posts
-    const visibilityFilter =
-      targetUserId == requestingUserId
-        ? {} // User can see all their own posts
-        : { visibility: PostEnums.VISIBILITY.PUBLIC }; // Others can only see public posts
+    // Lấy danh sách bạn bè
+    const userFriends = await UserFriend.findAll({
+      where: {
+        [Op.or]: [
+          { user_id_1: requestingUserId },
+          { user_id_2: requestingUserId },
+        ],
+      },
+    });
 
+    // Lấy danh sách ID của bạn bè
+    const friendIds = userFriends.map((friend) =>
+      friend.user_id_1 === requestingUserId
+        ? friend.user_id_2
+        : friend.user_id_1
+    );
+
+    // Thêm requestingUserId vào danh sách để có thể xem tất cả bài viết của mình
+    friendIds.push(requestingUserId);
+
+    // Lấy tất cả bài viết
     const posts = await Post.findAll({
       where: {
-        userId: targetUserId,
         status: PostEnums.STATUS.ACTIVE,
-        ...visibilityFilter,
+        [Op.or]: [
+          // Lấy tất cả bài viết của user đang request
+          { userId: requestingUserId },
+          // Lấy bài viết public của người khác
+          { visibility: PostEnums.VISIBILITY.PUBLIC },
+          // Lấy bài viết private của bạn bè
+          {
+            [Op.and]: [
+              { visibility: PostEnums.VISIBILITY.PRIVATE },
+              { userId: { [Op.in]: friendIds } },
+            ],
+          },
+        ],
       },
       order: [["createdAt", "DESC"]],
       include: [
@@ -97,9 +129,28 @@ const getPosts = async (req, res) => {
       group: ["Post.id", "User.id"], // Cần group để COUNT() hoạt động đúng
     });
 
+    console.log("posts are :");
+    console.log(posts);
+
+    const postsFromFriends = await friendPosts(requestingUserId, posts);
+
+    console.log("posts from friends are :");
+    console.log(postsFromFriends);
+
+    const recommendedPosts = await recommendPosts(
+      postsFromFriends,
+      requestingUserId,
+      posts
+    );
+
+    console.log("recommended posts are :");
+    console.log(recommendedPosts);
+
+    const finalPosts = [...postsFromFriends, ...recommendedPosts];
+
     return res.status(200).json({
       success: true,
-      data: posts,
+      data: finalPosts,
     });
   } catch (error) {
     console.error("Error fetching posts:", error);
@@ -121,7 +172,7 @@ const getPostById = async (req, res) => {
         },
       ],
     });
-    const comments = await comment.findAll({
+    const comments = await Comment.findAll({
       where: { postId: id },
       include: [
         {

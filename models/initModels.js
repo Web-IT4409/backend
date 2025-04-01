@@ -5,13 +5,15 @@ const PostModel = require("./post");
 const CommentModel = require("./comment");
 const FriendRequest = require("./friendRequest");
 const UserFriend = require("./userFriend");
+const EmotionModel = require("./emotion");
 
-// Initialize Post model
+// Initialize models
 const Post = PostModel(sequelize);
 const Comment = CommentModel(sequelize);
+const Emotion = EmotionModel(sequelize);
 
 // Set up associations
-const models = { User, Post, Comment, FriendRequest, UserFriend };
+const models = { User, Post, Comment, FriendRequest, UserFriend, Emotion };
 Object.keys(models).forEach((modelName) => {
   if (models[modelName].associate) {
     models[modelName].associate(models);

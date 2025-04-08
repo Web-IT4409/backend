@@ -13,6 +13,6 @@ const dbConfig = {
 const sequelize = new Sequelize(dbConfig);
 
 // force update database theo model
-sequelize.sync({ alter: true, force: false });
+sequelize.sync({ alter: true, force: false, indexes: false });
 
 module.exports = sequelize;

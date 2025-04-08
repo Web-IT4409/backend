@@ -49,6 +49,10 @@ module.exports = (sequelize) => {
           this.setDataValue("hashtags", Array.isArray(value) ? value : []);
         },
       },
+      groupId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       createdAt: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
@@ -102,3 +106,4 @@ module.exports = (sequelize) => {
 
   return Post;
 };
+

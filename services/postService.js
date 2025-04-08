@@ -12,7 +12,10 @@ const { Op } = require("sequelize");
 // Create a new post
 const createPost = async (req, res) => {
   try {
-    const { content, mediaUrl, visibility } = req.body;
+    const content = req.body.content;
+    const mediaUrl = req.body.mediaUrl;
+    const visibility = req.body.visibility;
+    const groupId = req.body.groupId;
     const userId = req.user.id; // User ID from token
 
     if (!content) {
@@ -52,6 +55,7 @@ const createPost = async (req, res) => {
       content,
       mediaUrl: mediaUrlArray,
       visibility: visibility || PostEnums.VISIBILITY.PUBLIC,
+      groupId: groupId || null,
     });
 
     return res.status(201).json({

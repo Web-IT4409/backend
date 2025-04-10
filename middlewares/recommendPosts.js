@@ -42,8 +42,20 @@ const friendPosts = async (userId, posts) => {
   }
 };
 
+const groupPosts = async (userId, posts) => {
+  try {
+    const groupId = await User.findByPk(userId, { 
+      attributes: ["groupId"],
+    });
+    const groupPosts = posts.filter((post) => post.groupId === groupId);
+    return groupPosts;
+  } catch (error) {
+    console.error("Error in groupPosts:", error);
+    throw error;
+  }
+};
 // Recommend posts based on hashtags
-const recommendPosts = async (friendPosts, userId, posts) => {
+const recommendPosts = async (friendPosts,groupPosts, userId, posts) => {
   const user = await User.findByPk(userId);
   const userHashtags = user.hashtags;
 
@@ -62,8 +74,17 @@ const recommendPosts = async (friendPosts, userId, posts) => {
         post.visibility === PostEnums.VISIBILITY.PUBLIC
     );
 
+    // Filter posts from groups
+    const groupPostIds = groupPosts.map((post) => post.id);
+    const nonGroupPosts = posts.filter(
+      (post) => !groupPostIds.includes(post.id)
+    );
+
+    // Combine posts from friends and groups
+    const combinedPosts = [...nonFriendPosts, ...nonGroupPosts];
+
     // Tính điểm tương đồng cho mỗi bài viết
-    const postsWithScores = nonFriendPosts.map((post) => {
+    const postsWithScores = combinedPosts.map((post) => {
       const commonHashtags = userHashtags.filter((tag) =>
         post.hashtags.includes(tag)
       );
@@ -93,7 +114,8 @@ const recommendPosts = async (friendPosts, userId, posts) => {
   }
 };
 
-module.exports = {
+module.exports = {  
   friendPosts,
+  groupPosts,
   recommendPosts,
 };

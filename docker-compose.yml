@@ -35,9 +35,9 @@ services:
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASSWORD}
     volumes:
-      - db_data:/var/lib/mysql
-      - ./data/01-init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql
-      - ./data/02-seed-users.sql:/docker-entrypoint-initdb.d/02-seed-users.sql
+    - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    tmpfs:
+      - /var/lib/mysql
     ports:
       - "3307:3306/tcp"
     healthcheck:

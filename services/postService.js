@@ -5,6 +5,7 @@ const Sequelize = require("sequelize");
 const {
   friendPosts,
   recommendPosts,
+  groupPosts,
 } = require("../middlewares/recommendPosts");
 const { UserFriend } = require("../models/initModels");
 const { Op } = require("sequelize");
@@ -141,8 +142,11 @@ const getPosts = async (req, res) => {
     console.log("posts from friends are :");
     console.log(postsFromFriends);
 
+    const postsFromGroups = await groupPosts(requestingUserId, posts);
+
     const recommendedPosts = await recommendPosts(
       postsFromFriends,
+      postsFromGroups,
       requestingUserId,
       posts
     );

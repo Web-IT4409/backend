@@ -1,4 +1,4 @@
-const { User, UserFriend } = require("../models/initModels");
+const { User, UserFriend, GroupMember, Post } = require("../models/initModels");
 const { Op } = require("sequelize");
 const { Post: PostEnums } = require("../utils/enum");
 
@@ -44,16 +44,24 @@ const friendPosts = async (userId, posts) => {
 
 const groupPosts = async (userId, posts) => {
   try {
-    const groupId = await User.findByPk(userId, { 
+    // Fetch all group IDs the user belongs to
+    const groupMemberships = await GroupMember.findAll({
+      where: { userId },
       attributes: ["groupId"],
     });
-    const groupPosts = posts.filter((post) => post.groupId === groupId);
+
+    const groupIds = groupMemberships.map((membership) => membership.groupId);
+
+    // Filter posts that belong to the user's groups
+    const groupPosts = posts.filter((post) => groupIds.includes(post.groupId));
+
     return groupPosts;
   } catch (error) {
     console.error("Error in groupPosts:", error);
     throw error;
   }
 };
+
 // Recommend posts based on hashtags
 const recommendPosts = async (friendPosts,groupPosts, userId, posts) => {
   const user = await User.findByPk(userId);

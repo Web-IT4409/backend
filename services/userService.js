@@ -5,6 +5,7 @@ require("dotenv").config();
 const User = require("../models/user");
 const { Op, Sequelize } = require("sequelize");
 const UserFriend = require("../models/userFriend");
+const FriendRequest = require("../models/friendRequest");
 
 const getUser = async (req, res) => {
   const parsedUser = req.user;
@@ -146,13 +147,31 @@ const getAllUsers = async (req, res) => {
           : friendship.user_id_1
       );
       
-      // Get all users who are not friends with the current user (and not the current user)
+      // Get IDs of users with pending friend requests
+      const pendingRequests = await FriendRequest.findAll({
+        where: {
+          [Op.or]: [
+            { sender_id: currentUserId, status: 'pending' },
+            { receiver_id: currentUserId, status: 'pending' }
+          ]
+        }
+      });
+
+      const pendingUserIds = pendingRequests.map(request => 
+        request.sender_id === currentUserId 
+          ? request.receiver_id 
+          : request.sender_id
+      );
+
+      // Get all users who are not friends with the current user,
+      // don't have pending requests, and are not the current user
       users = await User.findAll({
         where: {
           id: {
             [Op.and]: [
               { [Op.ne]: currentUserId },
-              { [Op.notIn]: friendIds }
+              { [Op.notIn]: friendIds },
+              { [Op.notIn]: pendingUserIds }
             ]
           }
         }

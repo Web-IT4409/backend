@@ -131,13 +131,13 @@ const respondToFriendRequest = async (req, res) => {
 
 const cancelFriendRequest = async (req, res) => {
     try {
-        const senderId = req.user.id;
+        const receiverId = req.user.id;
         const { requestId } = req.params;
 
         const friendRequest = await FriendRequest.findOne({
             where: {
                 id: requestId,
-                sender_id: senderId,
+                receiver_id: receiverId,
                 status: 'pending'
             }
         });
@@ -332,4 +332,4 @@ module.exports = {
     getPendingRequests,
     getSentRequests,
     checkFriendshipStatus
-}; 
+};

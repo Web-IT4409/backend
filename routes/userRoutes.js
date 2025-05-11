@@ -6,6 +6,7 @@ const {
   getAll,
   logout,
   getAllUsers,
+  updateAvatar,
 } = require("../services/userService");
 const { tokenVerifier } = require("../middlewares/authMiddleware");
 const { activeAccountFilter } = require("../middlewares/statusMiddleware");
@@ -19,6 +20,8 @@ router.get("/detail", tokenVerifier, activeAccountFilter, getUser);
 router.post("/logout", tokenVerifier, logout);
 // get all users with optional friend filtering
 router.post("/all", tokenVerifier, getAllUsers);
+// update user avatar
+router.post("/update-avatar", tokenVerifier, activeAccountFilter, updateAvatar);
 
 /**
  * @description: require no auth

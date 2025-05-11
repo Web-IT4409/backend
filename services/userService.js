@@ -195,6 +195,42 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+const updateAvatar = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    
+    // If not authenticated, return 401
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const { avatarUrl } = req.body;
+    
+    // Validate avatar URL
+    if (!avatarUrl) {
+      return res.status(400).json({ error: "Avatar URL is required" });
+    }
+
+    // Update the user's avatar
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.avatar = avatarUrl;
+    user.updatedAt = new Date();
+    await user.save();
+
+    return res.status(200).json({ 
+      message: "Avatar updated successfully",
+      user
+    });
+  } catch (error) {
+    console.error("Error updating avatar:", error);
+    return res.status(500).json({ error: "An error occurred while updating avatar" });
+  }
+};
+
 module.exports = {
   login,
   getUser,
@@ -202,4 +238,5 @@ module.exports = {
   getAll,
   logout,
   getAllUsers,
+  updateAvatar,
 };

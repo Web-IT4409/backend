@@ -4,7 +4,8 @@ const {
     getPosts,
     getPostById,
     updatePost,
-    deletePost
+    deletePost,
+    getPostsByUserId
 } = require('../services/postService');
 const { tokenVerifier } = require('../middlewares/authMiddleware');
 const { activeAccountFilter } = require('../middlewares/statusMiddleware');
@@ -17,6 +18,9 @@ router.use(activeAccountFilter);
 router.post('/', createPost);
 
 router.get('/all', getPosts);
+
+// Get all posts by a specific user ID
+router.get('/user/:userId', getPostsByUserId);
 
 router.get('/:id', getPostById);
 

@@ -51,6 +51,16 @@ const sendFriendRequest = async (req, res) => {
                 user_id_1: userIds[0],
                 user_id_2: userIds[1]
             });
+            
+            // Delete all friend requests between the two users (in both directions)
+            await FriendRequest.destroy({
+                where: {
+                    [Op.or]: [
+                        { sender_id: senderId, receiver_id: receiverId },
+                        { sender_id: receiverId, receiver_id: senderId }
+                    ]
+                }
+            });
 
             return res.status(200).json({
                 message: "Friend request from this user was automatically accepted",
@@ -58,20 +68,30 @@ const sendFriendRequest = async (req, res) => {
             });
         }
 
-        // check pending request A->B
+        // check any existing request A->B regardless of status
         const existingRequest = await FriendRequest.findOne({
             where: {
                 sender_id: senderId,
-                receiver_id: receiverId,
-                status: 'pending'
+                receiver_id: receiverId
             }
         });
 
         if (existingRequest) {
-            return res.status(400).json({ error: "Friend request already sent" });
+            if (existingRequest.status === 'pending') {
+                return res.status(400).json({ error: "Friend request already sent" });
+            } else if (existingRequest.status === 'canceled' || existingRequest.status === 'declined') {
+                // If there was a canceled/declined request, update it to pending
+                await existingRequest.update({
+                    status: 'pending',
+                    updatedAt: new Date()
+                });
+                return res.status(201).json({ message: "Friend request sent successfully" });
+            } else {
+                return res.status(400).json({ error: "Cannot send friend request" });
+            }
         }
 
-        // insert request
+        // insert new request if none exists
         await FriendRequest.create({
             sender_id: senderId,
             receiver_id: receiverId,
@@ -88,7 +108,7 @@ const sendFriendRequest = async (req, res) => {
 const respondToFriendRequest = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { requestId, action } = req.body;
+        const { senderId, action } = req.body;
 
         if (!['accept', 'decline'].includes(action)) {
             return res.status(400).json({ error: "Invalid action. Allow: 'accept' or 'decline'" });
@@ -96,7 +116,7 @@ const respondToFriendRequest = async (req, res) => {
 
         const friendRequest = await FriendRequest.findOne({
             where: {
-                id: requestId,
+                sender_id: senderId,
                 receiver_id: userId,
                 status: 'pending'
             }
@@ -120,6 +140,26 @@ const respondToFriendRequest = async (req, res) => {
                 user_id_1: userIds[0],
                 user_id_2: userIds[1]
             });
+            
+            // Delete all friend requests between the two users (in both directions)
+            await FriendRequest.destroy({
+                where: {
+                    [Op.or]: [
+                        { sender_id: userId, receiver_id: senderId },
+                        { sender_id: senderId, receiver_id: userId }
+                    ]
+                }
+            });
+        } else if (action === 'decline') {
+            // Delete all friend requests between the two users (in both directions)
+            await FriendRequest.destroy({
+                where: {
+                    [Op.or]: [
+                        { sender_id: userId, receiver_id: senderId },
+                        { sender_id: senderId, receiver_id: userId }
+                    ]
+                }
+            });
         }
 
         res.status(200).json({ message: `Friend request ${newStatus}` });
@@ -129,14 +169,15 @@ const respondToFriendRequest = async (req, res) => {
     }
 };
 
+// cancel request của mình
 const cancelFriendRequest = async (req, res) => {
     try {
-        const receiverId = req.user.id;
-        const { requestId } = req.params;
+        const userId = req.user.id;
+        const { receiverId } = req.params;
 
         const friendRequest = await FriendRequest.findOne({
             where: {
-                id: requestId,
+                sender_id: userId,
                 receiver_id: receiverId,
                 status: 'pending'
             }
@@ -146,9 +187,14 @@ const cancelFriendRequest = async (req, res) => {
             return res.status(404).json({ error: "Friend request not found" });
         }
 
-        await friendRequest.update({
-            status: 'canceled',
-            updatedAt: new Date()
+        // Delete all friend requests between the two users (in both directions)
+        await FriendRequest.destroy({
+            where: {
+                [Op.or]: [
+                    { sender_id: userId, receiver_id: receiverId },
+                    { sender_id: receiverId, receiver_id: userId }
+                ]
+            }
         });
 
         res.status(200).json({ message: "Friend request canceled" });
@@ -176,7 +222,19 @@ const unfriend = async (req, res) => {
             return res.status(404).json({ error: "Friendship not found" });
         }
 
+        // Delete the friendship
         await friendship.destroy();
+        
+        // Delete all friend requests between the two users (in both directions)
+        await FriendRequest.destroy({
+            where: {
+                [Op.or]: [
+                    { sender_id: userId, receiver_id: friendId },
+                    { sender_id: friendId, receiver_id: userId }
+                ]
+            }
+        });
+        
         res.status(200).json({ message: "Friend removed successfully" });
     } catch (error) {
         console.error("Unfriend error:", error);
@@ -313,7 +371,7 @@ const checkFriendshipStatus = async (req, res) => {
         });
 
         if (receivedRequest) {
-            return res.status(200).json({ status: 'request_received', requestId: receivedRequest.id });
+            return res.status(200).json({ status: 'request_received', senderId: receivedRequest.sender_id });
         }
 
         res.status(200).json({ status: 'not_friends' });

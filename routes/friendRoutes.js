@@ -19,7 +19,7 @@ router.use(tokenVerifier, activeAccountFilter);
 // Friend requests
 router.post("/request", sendFriendRequest);
 router.post("/respond", respondToFriendRequest);
-router.delete("/request/:requestId", cancelFriendRequest);
+router.delete("/request/:receiverId", cancelFriendRequest);
 router.delete("/unfriend/:friendId", unfriend);
 
 // Friend lists

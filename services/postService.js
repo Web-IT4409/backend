@@ -116,7 +116,7 @@ const getPosts = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ["id", "firstName", "lastName", "username"],
+          attributes: ["id", "firstName", "lastName", "username", "avatar"],
         },
         {
           model: Comment,
@@ -154,11 +154,42 @@ const getPosts = async (req, res) => {
     console.log("recommended posts are :");
     console.log(recommendedPosts);
 
-    const finalPosts = [...postsFromFriends, ...recommendedPosts];
+    // Get all post IDs
+    const allPosts = [...postsFromFriends, ...recommendedPosts];
+    const postIds = allPosts.map(post => post.id);
+
+    // Get user's emotions for these posts
+    const { Emotion } = require("../models/initModels");
+    const userEmotions = await Emotion.findAll({
+      where: {
+        userId: requestingUserId,
+        postId: {
+          [Op.in]: postIds
+        }
+      }
+    });
+
+    // Create a map of postId to emotion
+    const emotionMap = {};
+    userEmotions.forEach(emotion => {
+      emotionMap[emotion.postId] = { 
+        id: emotion.id,
+        type: emotion.type 
+      };
+    });
+
+    // Add emotion to each post
+    const postsWithEmotion = allPosts.map(post => {
+      const postObject = post.toJSON ? post.toJSON() : post;
+      return {
+        ...postObject,
+        emotion: emotionMap[post.id] || null
+      };
+    });
 
     return res.status(200).json({
       success: true,
-      data: finalPosts,
+      data: postsWithEmotion,
     });
   } catch (error) {
     console.error("Error fetching posts:", error);
@@ -176,7 +207,7 @@ const getPostById = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ["id", "firstName", "lastName", "username"],
+          attributes: ["id", "firstName", "lastName", "username", "avatar"],
         },
       ],
     });
@@ -185,7 +216,7 @@ const getPostById = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ["username"],
+          attributes: ["username", "avatar"],
         },
       ],
     });
@@ -204,9 +235,25 @@ const getPostById = async (req, res) => {
         .json({ error: "You do not have permission to view this post" });
     }
 
+    // Get user's emotion for this post
+    const { Emotion } = require("../models/initModels");
+    const userEmotion = await Emotion.findOne({
+      where: {
+        userId: requestingUserId,
+        postId: id
+      }
+    });
+
+    // Convert post to a plain object and add emotion
+    const postWithEmotion = post.toJSON ? post.toJSON() : post;
+    postWithEmotion.emotion = userEmotion ? {
+      id: userEmotion.id,
+      type: userEmotion.type
+    } : null;
+
     return res.status(200).json({
       success: true,
-      data: { post, comments },
+      data: { post: postWithEmotion, comments },
     });
   } catch (error) {
     console.error("Error fetching post:", error);
@@ -280,10 +327,101 @@ const deletePost = async (req, res) => {
   }
 };
 
+// Get posts by user ID with privacy filtering
+const getPostsByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const requestingUserId = req.user.id;
+    
+    // Determine query conditions based on whether user is viewing their own posts or someone else's
+    let whereConditions;
+    
+    if (parseInt(userId) === requestingUserId) {
+      // If user is requesting their own posts, return all their posts
+      whereConditions = {
+        userId: requestingUserId,
+        status: PostEnums.STATUS.ACTIVE
+      };
+    } else {
+      // If user is requesting someone else's posts, only return PUBLIC posts
+      whereConditions = {
+        userId: userId,
+        visibility: PostEnums.VISIBILITY.PUBLIC,
+        status: PostEnums.STATUS.ACTIVE
+      };
+    }
+
+    const posts = await Post.findAll({
+      where: whereConditions,
+      order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: User,
+          attributes: ["id", "firstName", "lastName", "username", "avatar"],
+        },
+        {
+          model: Comment,
+          attributes: [], // Don't fetch comment data
+        },
+      ],
+      attributes: {
+        include: [
+          [
+            Sequelize.fn("COUNT", Sequelize.col("Comments.id")),
+            "countComments",
+          ],
+        ],
+      },
+      group: ["Post.id", "User.id"], // Required for COUNT() to work properly
+    });
+
+    // Extract post IDs
+    const postIds = posts.map(post => post.id);
+
+    // Get user's emotions for these posts
+    const { Emotion } = require("../models/initModels");
+    const userEmotions = await Emotion.findAll({
+      where: {
+        userId: requestingUserId,
+        postId: {
+          [Op.in]: postIds
+        }
+      }
+    });
+
+    // Create a map of postId to emotion
+    const emotionMap = {};
+    userEmotions.forEach(emotion => {
+      emotionMap[emotion.postId] = {
+        id: emotion.id,
+        type: emotion.type
+      };
+    });
+
+    // Add emotion to each post
+    const postsWithEmotion = posts.map(post => {
+      const postObject = post.toJSON ? post.toJSON() : post;
+      return {
+        ...postObject,
+        emotion: emotionMap[post.id] || null
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: postsWithEmotion,
+    });
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    return res.status(500).json({ error: "Failed to fetch user posts" });
+  }
+};
+
 module.exports = {
   createPost,
   getPosts,
   getPostById,
   updatePost,
   deletePost,
+  getPostsByUserId,
 };

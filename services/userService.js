@@ -3,6 +3,8 @@ const { generateAccessToken } = require("../middlewares/authMiddleware");
 const { revokeToken } = require("../services/redisService");
 require("dotenv").config();
 const User = require("../models/user");
+const { Op, Sequelize } = require("sequelize");
+const UserFriend = require("../models/userFriend");
 
 const getUser = async (req, res) => {
   const parsedUser = req.user;
@@ -89,10 +91,96 @@ const logout = async (req, res) => {
   }
 };
 
+const getAllUsers = async (req, res) => {
+  try {
+    const { is_friend } = req.body;
+    const currentUserId = req.user?.id;
+    
+    // If not authenticated, return 401
+    if (!currentUserId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    let users = [];
+    
+    // Filter by friendship status if specified
+    if (is_friend === true) {
+      // Get all friends of the current user
+      const friendships = await UserFriend.findAll({
+        where: {
+          [Op.or]: [
+            { user_id_1: currentUserId },
+            { user_id_2: currentUserId }
+          ]
+        }
+      });
+
+      // Extract friend IDs
+      const friendIds = friendships.map(friendship => 
+        friendship.user_id_1 === currentUserId 
+          ? friendship.user_id_2 
+          : friendship.user_id_1
+      );
+
+      // Get user details for all friends
+      users = await User.findAll({
+        where: {
+          id: friendIds
+        }
+      });
+    } 
+    else if (is_friend === false) {
+      // Get IDs of all friends
+      const friendships = await UserFriend.findAll({
+        where: {
+          [Op.or]: [
+            { user_id_1: currentUserId },
+            { user_id_2: currentUserId }
+          ]
+        }
+      });
+
+      const friendIds = friendships.map(friendship => 
+        friendship.user_id_1 === currentUserId 
+          ? friendship.user_id_2 
+          : friendship.user_id_1
+      );
+      
+      // Get all users who are not friends with the current user (and not the current user)
+      users = await User.findAll({
+        where: {
+          id: {
+            [Op.and]: [
+              { [Op.ne]: currentUserId },
+              { [Op.notIn]: friendIds }
+            ]
+          }
+        }
+      });
+    } 
+    else {
+      // No filter, return all users except current user
+      users = await User.findAll({
+        where: {
+          id: {
+            [Op.ne]: currentUserId
+          }
+        }
+      });
+    }
+
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error("Error getting all users:", error);
+    return res.status(500).json({ error: "An error occurred while fetching users" });
+  }
+};
+
 module.exports = {
   login,
   getUser,
   createUser,
   getAll,
   logout,
+  getAllUsers,
 };

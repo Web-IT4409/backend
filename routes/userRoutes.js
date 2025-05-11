@@ -5,6 +5,7 @@ const {
   createUser,
   getAll,
   logout,
+  getAllUsers,
 } = require("../services/userService");
 const { tokenVerifier } = require("../middlewares/authMiddleware");
 const { activeAccountFilter } = require("../middlewares/statusMiddleware");
@@ -16,6 +17,8 @@ const router = express.Router();
 // get single user detail
 router.get("/detail", tokenVerifier, activeAccountFilter, getUser);
 router.post("/logout", tokenVerifier, logout);
+// get all users with optional friend filtering
+router.post("/all", tokenVerifier, getAllUsers);
 
 /**
  * @description: require no auth
